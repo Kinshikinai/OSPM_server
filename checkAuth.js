@@ -6,11 +6,11 @@ const jwt_key = process.env.jwt_key;
 
 export default (req, res, next) => {
     const token = req.body.token || '';
-
     if (token) {
         try {
             const decoded = jwt.verify(token, jwt_key);
             req.body.id = decoded.id;
+            req.body.role = decoded.role;
             next();
         } catch (err) {
             return res.status(403).json({

@@ -109,32 +109,41 @@ app.post('/login', async (req, res) => {
                 await db.query('SELECT * FROM `participants` WHERE login=?', [req.body.login])
                 .then(async result => {
                     if (result[0].length !== 0) {
-                        await db.query('SELECT passwordHash FROM `participants` WHERE login=?', [req.body.login])
-                        .then(async result2 => {
-                            const isRightPassword = await bcrypt.compare(req.body.password, result2[0][0].passwordHash);
-                            if (isRightPassword) {
-                                const token = jwt.sign({
-                                    id: result[0][0].id
-                                },
-                                jwt_key,
-                                {
-                                    expiresIn: '1d'
-                                })
-                                res.status(200).json({
-                                    token: token,
-                                    success: true,
-                                    msg: 'Logged in'
-                                });
-                            }
-                            else {
-                                res.status(401).json({
-                                    msg: 'Wrong password or login'
-                                });
-                            }
-                        })
-                        .catch(err => {
-                            console.log('!!!POST /login query 2 ERROR!!!: ' + err);
-                        })
+                        if (result[0][0].approved) {
+                            await db.query('SELECT passwordHash FROM `participants` WHERE login=?', [req.body.login])
+                            .then(async result2 => {
+                                const isRightPassword = await bcrypt.compare(req.body.password, result2[0][0].passwordHash);
+                                if (isRightPassword) {
+                                    const token = jwt.sign({
+                                        id: result[0][0].id,
+                                        role: 0
+                                    },
+                                    jwt_key,
+                                    {
+                                        expiresIn: '1d'
+                                    })
+                                    res.status(200).json({
+                                        token: token,
+                                        success: true,
+                                        msg: 'Logged in'
+                                    });
+                                }
+                                else {
+                                    res.status(401).json({
+                                        msg: 'Wrong password or login'
+                                    });
+                                }
+                            })
+                            .catch(err => {
+                                console.log('!!!POST /login query 2 ERROR!!!: ' + err);
+                            })
+                        }
+                        else {
+                            res.status(409).json({
+                                success: false,
+                                message: 'Unapproved yet account'
+                            });
+                        }
                     }
                     else {
                         res.status(401).json({
@@ -150,32 +159,41 @@ app.post('/login', async (req, res) => {
                 await db.query('SELECT * FROM `creators` WHERE login=?', [req.body.login])
                 .then(async result => {
                     if (result[0].length !== 0) {
-                        await db.query('SELECT passwordHash FROM `creators` WHERE login=?', [req.body.login])
-                        .then(async result2 => {
-                            const isRightPassword = await bcrypt.compare(req.body.password, result2[0][0].passwordHash);
-                            if (isRightPassword) {
-                                const token = jwt.sign({
-                                    id: result[0][0].id
-                                },
-                                jwt_key,
-                                {
-                                    expiresIn: '1d'
-                                })
-                                res.status(200).json({
-                                    token: token,
-                                    success: true,
-                                    msg: 'Logged in'
-                                });
-                            }
-                            else {
-                                res.status(401).json({
-                                    msg: 'Wrong password or login'
-                                });
-                            }
-                        })
-                        .catch(err => {
-                            console.log('!!!POST /login query 2 ERROR!!!: ' + err);
-                        })
+                        if (result[0][0].approved) {
+                            await db.query('SELECT passwordHash FROM `creators` WHERE login=?', [req.body.login])
+                            .then(async result2 => {
+                                const isRightPassword = await bcrypt.compare(req.body.password, result2[0][0].passwordHash);
+                                if (isRightPassword) {
+                                    const token = jwt.sign({
+                                        id: result[0][0].id,
+                                        role: 1
+                                    },
+                                    jwt_key,
+                                    {
+                                        expiresIn: '1d'
+                                    })
+                                    res.status(200).json({
+                                        token: token,
+                                        success: true,
+                                        msg: 'Logged in'
+                                    });
+                                }
+                                else {
+                                    res.status(401).json({
+                                        msg: 'Wrong password or login'
+                                    });
+                                }
+                            })
+                            .catch(err => {
+                                console.log('!!!POST /login query 2 ERROR!!!: ' + err);
+                            })
+                        }
+                        else {
+                            res.status(409).json({
+                                success: false,
+                                message: 'Unapproved yet account'
+                            });
+                        }
                     }
                     else {
                         res.status(401).json({
@@ -194,9 +212,41 @@ app.post('/login', async (req, res) => {
     }
 });
 
-app.get('/ap:password', async (req, res) => {
-    
-});
+app.post('/create', checkAuth, async (req, res) => {
+    try {
+        await db.query('INSERT INTO `projects`(`name`, `skills`, `description`, `creator_id`) VALUES (?,?,?,?)', [req.body.name, req.body.skills, req.body.desc, req.body.id])
+        .then(async result => {
+            if (result[0].affectedRows !== 0) {
+                res.status(200).json({
+                    success: true
+                });
+            }
+        })
+        .catch(err => {
+            res.status(400).send('ERROR ON ROUTE /create');
+            console.log('ERROR ON ROUTE /create: ', err);
+        });
+    } catch (err) {
+        res.status(400).send('ERROR ON ROUTE /create');
+        console.log('ERROR ON ROUTE /create: ', err);
+    }
+})
+
+app.get('/skills', async (req, res) => {
+    try {
+        await db.query('SELECT * FROM `skills`')
+        .then(async result => {
+            res.status(200).json(result[0]);
+        })
+        .catch(err => {
+            res.send('ERROR ON ROUTE query /create');
+            console.log('ERROR ON ROUTE query /create: ', err);
+        });
+    } catch (err) {
+        res.send('ERROR ON ROUTE /create');
+        console.log('ERROR ON ROUTE /create: ', err);
+    }
+})
 
 app.listen(port, err => {
     if (err) {
